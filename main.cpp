@@ -24,7 +24,7 @@ public:
     int height = screenHeight / cols;
     Rectangle pt =
         Rectangle{pos.x * width, pos.y * height, (float)width, (float)height};
-    DrawRectangleRounded(pt, 1.0, 4, WHITE);
+    DrawRectangleRounded(pt, 1.0, 4, GOLD);
   }
 
   Vector2 get_pos() { return pos; }
@@ -141,8 +141,15 @@ public:
 
 class Portal {
 public:
-  Vector2 p1 = {10, 15};
-  Vector2 p2 = {20, 20};
+  Vector2 p1;
+  Vector2 p2;
+
+  void initialize_portals() {
+    p1 = {(float)(rand() % (rows / 2 - 6) + 3),
+          (float)(rand() % (cols - 6) + 3)};
+    p2 = {(float)(rand() % (rows / 2 - 6) + 3 + (rows / 2)),
+          (float)(rand() % (cols - 6) + 3)};
+  }
 
   Vector2 get_portA() { return p1; }
 
@@ -170,11 +177,13 @@ int main() {
   Background grids = Background();
   Snake snake = Snake();
   Portal port = Portal();
+  port.initialize_portals();
 
   while (WindowShouldClose() == false) {
     if (state == 0) {
       BeginDrawing();
       ClearBackground(BLACK);
+      DrawText("SNAKE", 3 * screenWidth / 10, screenHeight / 4, 50, RED);
       if (IsKeyPressed(KEY_ENTER)) {
         state = 1;
       }
@@ -200,6 +209,15 @@ int main() {
 
       if (snake.consume(p.get_pos())) {
         p.set_point();
+        Vector2 updated_pos = p.get_pos();
+        // Ensuring that new point is not generated atop portals
+        while ((updated_pos.x == port.get_portA().x &&
+                updated_pos.y == port.get_portA().y) ||
+               (updated_pos.x == port.get_portB().x &&
+                updated_pos.y == port.get_portB().y)) {
+          p.set_point();
+          updated_pos = p.get_pos();
+        }
       }
 
       // Handling keyboard input
@@ -216,6 +234,7 @@ int main() {
       p = Point();
       grids = Background();
       snake = Snake();
+      port.initialize_portals();
       state = 0;
     }
   }
