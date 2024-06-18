@@ -5,6 +5,7 @@
 
 using namespace std;
 
+const int gameWidth = 800;
 const int screenWidth = 600;
 const int screenHeight = 600;
 int rows = 40;
@@ -167,27 +168,85 @@ public:
   }
 };
 
+class Score {
+public:
+  int high_score = 0;
+  int score = 0;
+
+  void increment() { score += 200; }
+
+  string output_score() {
+    string x = to_string(score);
+    while (x.length() != 5) {
+      x = ((string) "0").append(x);
+    }
+    return x;
+  }
+
+  string output_hi_score() {
+    string x = to_string(high_score);
+    while (x.length() != 5) {
+      x = ((string) "0").append(x);
+    }
+    return x;
+  }
+
+  void update_score() {
+    if (score > high_score) {
+      high_score = score;
+      score = 0;
+    }
+  }
+};
 int main() {
 
-  InitWindow(screenWidth, screenHeight, "Snakes...");
-  SetTargetFPS(20);
+  InitWindow(gameWidth, screenHeight, "Snakes...");
+  SetTargetFPS(60);
 
   int state = 0; // Can be 0, 1, 2
   Point p = Point();
   Background grids = Background();
   Snake snake = Snake();
   Portal port = Portal();
+  Score sc = Score();
   port.initialize_portals();
+  int state_counter = 0;
 
   while (WindowShouldClose() == false) {
     if (state == 0) {
+
+      Color begin_color;
+      Color quit_color;
+      if (state_counter == 0) {
+        begin_color = GREEN;
+        quit_color = WHITE;
+      } else {
+        begin_color = WHITE;
+        quit_color = GREEN;
+      }
+
       BeginDrawing();
       ClearBackground(BLACK);
-      DrawText("SNAKE", 3 * screenWidth / 10, screenHeight / 4, 50, RED);
-      if (IsKeyPressed(KEY_ENTER)) {
-        state = 1;
-      }
+      DrawText("SNAKE", 3 * gameWidth / 10, screenHeight / 4, 60, RED);
+      DrawText("Begin", 4 * gameWidth / 10, screenHeight / 2, 30, begin_color);
+      DrawText("Quit", 4 * gameWidth / 10, 3 * screenHeight / 5, 30,
+               quit_color);
       EndDrawing();
+
+      if (IsKeyPressed(KEY_ENTER)) {
+        if (state_counter == 0) {
+          SetTargetFPS(20);
+          state = 1;
+        } else {
+          CloseWindow();
+        }
+      }
+
+      if (IsKeyPressed(KEY_DOWN) && state_counter == 0) {
+        state_counter = 1;
+      } else if (IsKeyPressed(KEY_UP) && state_counter == 1) {
+        state_counter = 0;
+      }
     } else if (state == 1) {
       BeginDrawing();
       // Generating game layout
@@ -196,6 +255,16 @@ int main() {
       p.draw_points();
       port.draw_portals();
       snake.draw_snake();
+      string s = sc.output_score();
+      char *ch_arr = new char[s.length() + 1];
+      strcpy(ch_arr, s.c_str());
+      DrawText("SCORE: ", 620, 160, 40, WHITE);
+      DrawText(ch_arr, 630, 200, 40, WHITE);
+      string x = sc.output_hi_score();
+      char *ch_ar = new char[x.length() + 1];
+      strcpy(ch_ar, x.c_str());
+      DrawText("HSCORE: ", 620, 400, 40, WHITE);
+      DrawText(ch_ar, 630, 440, 40, WHITE);
       EndDrawing();
 
       // Updating for next frame
@@ -208,6 +277,7 @@ int main() {
       }
 
       if (snake.consume(p.get_pos())) {
+        sc.increment();
         p.set_point();
         Vector2 updated_pos = p.get_pos();
         // Ensuring that new point is not generated atop portals
@@ -231,10 +301,11 @@ int main() {
         snake.update_heading("right", Vector2{1, 0});
       }
     } else if (state == 2) {
-      p = Point();
-      grids = Background();
+      p.set_point();
       snake = Snake();
       port.initialize_portals();
+      sc.update_score();
+      state_counter = 0;
       state = 0;
     }
   }
